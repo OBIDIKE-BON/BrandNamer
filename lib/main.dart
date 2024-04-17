@@ -54,7 +54,37 @@ class MyHomePage extends StatelessWidget {
     var appState = context.watch<MyAppState>();
     var wordPair = appState.current;
 
-    return MainPage(wordPair: wordPair, appState: appState);
+    return Scaffold(
+      body: Row(
+        children: [
+          SafeArea(
+            child: NavigationRail(
+              extended: false,
+              destinations: [
+                NavigationRailDestination(
+                  icon: Icon(Icons.home),
+                  label: Text('Home'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.favorite),
+                  label: Text('Favorites'),
+                ),
+              ],
+              selectedIndex: 0,
+              onDestinationSelected: (index) {
+                print('Selected index: $index');
+              },
+            ),
+          ),
+          Expanded(
+            child: Container(
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
+              child: MainPage(wordPair: wordPair, appState: appState),
+            ),
+          )
+        ],
+      )
+    );
   }
 }
 
@@ -70,48 +100,46 @@ class MainPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            BigCard(wordPair: wordPair),
-            SizedBox(height: 16),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: (){
-                    appState.toggleLike();
-                  },
-                  icon: Icon(Icons.favorite),
-                  label: Text('Like'),
-                ),
-                SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () {
-                    appState.nextIdea();
-                    // showDialog(
-                    //     context: context,
-                    //     builder: (context) => AlertDialog(
-                    //           title: Text('New Idea'),
-                    //           content:
-                    //               Chip(label: Text(appState.current.asLowerCase)),
-                    //           actions: [
-                    //             FilledButton(
-                    //                 onPressed: () {
-                    //                   Navigator.of(context).pop();
-                    //                 },
-                    //                 child: Text('OK'))
-                    //           ],
-                    //         ));
-                  },
-                  child: Text('Next Idea'),
-                ),
-              ],
-            )
-          ],
-        ),
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          BigCard(wordPair: wordPair),
+          SizedBox(height: 16),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton.icon(
+                onPressed: (){
+                  appState.toggleLike();
+                },
+                icon: Icon(Icons.favorite),
+                label: Text('Like'),
+              ),
+              SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () {
+                  appState.nextIdea();
+                  // showDialog(
+                  //     context: context,
+                  //     builder: (context) => AlertDialog(
+                  //           title: Text('New Idea'),
+                  //           content:
+                  //               Chip(label: Text(appState.current.asLowerCase)),
+                  //           actions: [
+                  //             FilledButton(
+                  //                 onPressed: () {
+                  //                   Navigator.of(context).pop();
+                  //                 },
+                  //                 child: Text('OK'))
+                  //           ],
+                  //         ));
+                },
+                child: Text('Next Idea'),
+              ),
+            ],
+          )
+        ],
       ),
     );
   }
