@@ -1,5 +1,6 @@
 import 'package:english_words/english_words.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -15,11 +16,15 @@ class MyAppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleLike() {
-    if (liked.contains(current)) {
-      liked.remove(current);
+  void toggleLike([int index = -1]) {
+    if (index >= 0) {
+      liked.remove(liked.elementAt(index));
     } else {
-      liked.add(current);
+      if (liked.contains(current)) {
+        liked.remove(current);
+      } else {
+        liked.add(current);
+      }
     }
     notifyListeners();
   }
@@ -36,8 +41,9 @@ class MyApp extends StatelessWidget {
           theme: ThemeData(
               useMaterial3: true,
               colorScheme: ColorScheme.fromSeed(
-                  seedColor: Colors.deepOrange,
-                  background: Color.fromARGB(255, 213, 228, 236))),
+                seedColor: Colors.deepOrange,
+                background: Colors.grey[300]!,
+              )),
           title: 'Startup Name Generator',
           home: MyHomePage(),
         ));
@@ -48,92 +54,126 @@ class MyApp extends StatelessWidget {
 //   var current = WordPair.random();
 // }
 
-class MyHomePage extends StatelessWidget {
+class MyHomePage extends StatefulWidget {
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  var selectedIndex = 0;
+
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var wordPair = appState.current;
+    final colorScheme = Theme.of(context).colorScheme;
+    Widget page;
+
+    if (selectedIndex == 0) {
+      page = MainPage();
+    } else if (selectedIndex == 1) {
+      page = FavoritesPage();
+    } else {
+      throw UnimplementedError("Page $selectedIndex is not implemented");
+    }
+
+    var mainArea = ColoredBox(
+      color: colorScheme.surfaceVariant,
+      child: AnimatedSwitcher(
+        duration: Duration(microseconds: 200),
+        child: page,
+      ),
+    );
 
     return Scaffold(
-      body: Row(
-        children: [
-          SafeArea(
-            child: NavigationRail(
-              extended: false,
-              destinations: [
-                NavigationRailDestination(
-                  icon: Icon(Icons.home),
-                  label: Text('Home'),
+      body: LayoutBuilder(builder: (context, constraints) {
+        if (constraints.maxWidth < 450) {
+          return Column(
+            children: [
+              Expanded(child: mainArea),
+              SafeArea(
+                child: BottomNavigationBar(
+                  items: [
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.home),
+                      label: 'Home',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.home),
+                      label: 'Favorites',
+                    ),
+                  ],
+                  currentIndex: selectedIndex,
+                  onTap: (index) {
+                    setState(() {
+                      selectedIndex = index;
+                    });
+                  },
                 ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.favorite),
-                  label: Text('Favorites'),
+              ),
+            ],
+          );
+        } else {
+          return Row(
+            children: [
+              SafeArea(
+                child: NavigationRail(
+                  extended: constraints.maxWidth >= 600,
+                  destinations: [
+                    NavigationRailDestination(
+                      icon: Icon(Icons.home),
+                      label: Text('Home'),
+                    ),
+                    NavigationRailDestination(
+                      icon: Icon(Icons.favorite),
+                      label: Text('Favorites'),
+                    ),
+                  ],
+                  selectedIndex: selectedIndex,
+                  onDestinationSelected: (index) {
+                    setState(() {
+                      selectedIndex = index;
+                    });
+                  },
                 ),
-              ],
-              selectedIndex: 0,
-              onDestinationSelected: (index) {
-                print('Selected index: $index');
-              },
-            ),
-          ),
-          Expanded(
-            child: Container(
-              color: Theme.of(context).colorScheme.onPrimaryContainer,
-              child: MainPage(wordPair: wordPair, appState: appState),
-            ),
-          )
-        ],
-      )
+              ),
+              Expanded(child: mainArea)
+            ],
+          );
+        }
+      })
     );
   }
 }
 
 class MainPage extends StatelessWidget {
-  const MainPage({
-    super.key,
-    required this.wordPair,
-    required this.appState,
-  });
-
-  final WordPair wordPair;
-  final MyAppState appState;
-
   @override
   Widget build(BuildContext context) {
+    final MyAppState appState = context.watch<MyAppState>();
+    final WordPair wordPair = appState.current;
+
+    IconData icon = appState.liked.contains(wordPair)
+        ? Icons.favorite
+        : Icons.favorite_border;
+
     return Center(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          SizedBox(height: 32),
           BigCard(wordPair: wordPair),
           SizedBox(height: 16),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               ElevatedButton.icon(
-                onPressed: (){
+                onPressed: () {
                   appState.toggleLike();
                 },
-                icon: Icon(Icons.favorite),
+                icon: Icon(icon),
                 label: Text('Like'),
               ),
               SizedBox(width: 8),
               ElevatedButton(
                 onPressed: () {
                   appState.nextIdea();
-                  // showDialog(
-                  //     context: context,
-                  //     builder: (context) => AlertDialog(
-                  //           title: Text('New Idea'),
-                  //           content:
-                  //               Chip(label: Text(appState.current.asLowerCase)),
-                  //           actions: [
-                  //             FilledButton(
-                  //                 onPressed: () {
-                  //                   Navigator.of(context).pop();
-                  //                 },
-                  //                 child: Text('OK'))
-                  //           ],
-                  //         ));
                 },
                 child: Text('Next Idea'),
               ),
@@ -158,19 +198,68 @@ class BigCard extends StatelessWidget {
     final theme = Theme.of(context);
     final style = theme.textTheme.displayMedium!.copyWith(
       color: theme.colorScheme.onPrimary,
-      );
-
+    );
 
     return Card(
       color: theme.colorScheme.primary,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Text(
-            wordPair.asLowerCase,
-            style: style,
-            semanticsLabel: "${wordPair.first} ${wordPair.second}",
-          ),
+          wordPair.asLowerCase,
+          style: style,
+          semanticsLabel: "${wordPair.first} ${wordPair.second}",
+        ),
       ),
+    );
+  }
+}
+
+class FavoritesPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final MyAppState appState = context.watch<MyAppState>();
+    final List<WordPair> liked = appState.liked.toList();
+    final theme = Theme.of(context);
+
+    if (liked.isEmpty) {
+      return Center(
+        child: Text(
+          'You have not liked any names yet',
+          style: theme.textTheme.titleMedium,
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+      Padding(
+        padding: const EdgeInsets.all(30),
+        child: Text('You have ${appState.liked.length} favorites:'),
+      ),
+      Expanded(
+        child: GridView(
+          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 400,
+            childAspectRatio: 400/80,
+        
+          ),
+          children: [
+          for (var wordPair in liked)
+            ListTile(
+              title: Text(
+                wordPair.asPascalCase,
+                ),
+              trailing: IconButton(
+                icon: Icon(Icons.delete_outline, color: theme.colorScheme.error,),
+                onPressed: () {
+                  appState.toggleLike(liked.indexOf(wordPair));
+                },
+              ),
+            ),
+          ]
+        ),
+      ),
+      ]
     );
   }
 }
